@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Quality Day 2026 – Word Search</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#F4F7F8;color:#0B2545}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+header{background:#0B2545;color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:14px}
+header h1{margin:0;font-size:24px}
+header p{margin:4px 0 0;color:#7FDCD5;font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+input{padding:9px 12px;border:1px solid #9bb;border-radius:8px;font-size:15px;min-width:200px}
+button{padding:9px 18px;border:0;border-radius:8px;background:#009A93;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+button:disabled{background:#9aa;cursor:not-allowed}
+.stat{font-size:22px;font-weight:700;background:#fff;border:2px solid #009A93;border-radius:8px;padding:4px 14px}
+.main{display:flex;flex-wrap:wrap;gap:16px}
+#grid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;background:#0B2545;padding:6px;border-radius:10px;flex:1 1 560px;max-width:620px;user-select:none;touch-action:none}
+.cell{background:#fff;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(11px,2.2vw,18px);border-radius:3px;cursor:pointer}
+.cell.sel{background:#FFD166}
+.cell.found{background:#7FDCD5}
+.locked .cell{color:#ccd;cursor:default}
+.side{flex:1 1 220px;background:#fff;border-radius:10px;padding:14px}
+.side h3{margin:0 0 8px}
+.side ul{list-style:none;padding:0;margin:0;columns:2}
+.side li{padding:4px 0;font-weight:600}
+.side li.done{color:#009A93;text-decoration:line-through}
+#msg{margin-top:12px;padding:12px;border-radius:8px;font-weight:600;min-height:20px}
+#msg.win{background:#0B2545;color:#fff;font-size:18px}
+.hint{font-size:13px;color:#456;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>World Quality Day 2026 – Quality Word Search</h1>
+<p>Quality: Powering Performance | GT SV ME AE</p>
+</header>
+<div class="controls">
+<input id="name" placeholder="Enter your name">
+<button id="start" type="button">Start</button>
+<span class="stat">Score: <span id="score">0</span> / <span id="total">0</span></span>
+<span class="stat">⏱ <span id="timer">00:00</span></span>
+</div>
+<div class="main">
+<div id="grid" class="locked"></div>
+<div class="side">
+<h3>Words to find</h3>
+<ul id="words"></ul>
+<p class="hint">Click the first letter, then the last letter of a word (or drag across it). Words go horizontal, vertical or diagonal. No backwards words. Wrong selection = no point.</p>
+</div>
+</div>
+<div id="msg">Enter your name and press Start.</div>
+</div>
+<script>
+(function(){
+var GRID=["LEARNINGVXMERVALUE", "BEZGEEWRRZVGKRDWKU", "CJNCQXPUTEVZNQKRAN", "LSBYXCLBPLSYAMOHDR", "GHRQLEBICZIGXWTRRR", "EIEQVLJLKFKDMIRSSZ", "IKLUALBYLAOAXMIPIP", "UBIAXEGPJIECXPSEWP", "ATALSNQRVTEMPRKRXS", "MFBIGCIEEVDGBORFJZ", "KZITKEBVLFNCWVYOJI", "VMLYPCRECRUHHERRIS", "FZIJBXANPSMPHMRMNQ", "UOTCORYTGHPKGELATA", "XSYSNQNIBKSFRNHNTK", "LFYIGJNOLOSCQTDCQA", "GSNWRYFNOOOQERREPO", "AGPROCESSCUSTOMERJ"], WORDS=["QUALITY", "PERFORMANCE", "CUSTOMER", "PROCESS", "IMPROVEMENT", "RISK", "VALUE", "TEAMWORK", "RELIABILITY", "PREVENTION", "LEARNING", "EXCELLENCE"], N=GRID.length;
+var gridEl=document.getElementById('grid'), wordsEl=document.getElementById('words');
+var scoreEl=document.getElementById('score'), timerEl=document.getElementById('timer'), msg=document.getElementById('msg');
+var startBtn=document.getElementById('start'), nameEl=document.getElementById('name');
+var cells=[], found={}, score=0, playing=false, t0=0, tick=null, anchor=null, dragging=false, path=[];
+document.getElementById('total').textContent=WORDS.length;
+for(var r=0;r<N;r++)for(var c=0;c<N;c++){var d=document.createElement('div');d.className='cell';d.textContent=GRID[r][c];d.dataset.r=r;d.dataset.c=c;gridEl.appendChild(d);cells.push(d);}
+function cell(r,c){return cells[r*N+c];}
+function renderWords(){wordsEl.innerHTML='';WORDS.forEach(function(w){var li=document.createElement('li');li.textContent=w;if(found[w])li.className='done';wordsEl.appendChild(li);});}
+renderWords();
+function fmt(ms){var s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function line(a,b){var dr=b.r-a.r,dc=b.c-a.c;var len=Math.max(Math.abs(dr),Math.abs(dc));if(len===0)return[{r:a.r,c:a.c}];if(!(dr===0||dc===0||Math.abs(dr)===Math.abs(dc)))return null;var sr=Math.sign(dr),sc=Math.sign(dc),p=[];for(var k=0;k<=len;k++)p.push({r:a.r+sr*k,c:a.c+sc*k});return p;}
+function clearSel(){cells.forEach(function(x){x.classList.remove('sel');});}
+function showPath(p){clearSel();if(p)p.forEach(function(q){cell(q.r,q.c).classList.add('sel');});}
+function check(p){
+  clearSel();if(!p||p.length<2)return false;
+  var s=p.map(function(q){return GRID[q.r][q.c];}).join('');
+  var w=WORDS.indexOf(s)>=0?s:null;
+  if(w&&!found[w]){found[w]=true;score++;scoreEl.textContent=score;p.forEach(function(q){cell(q.r,q.c).classList.add('found');});renderWords();msg.className='';msg.textContent='✅ '+w+' found!';
+    if(score===WORDS.length)finish();return true;}
+  msg.className='';msg.textContent=w?'Already found.':'❌ Not a word – try again.';return false;
+}
+function finish(){playing=false;clearInterval(tick);var t=fmt(Date.now()-t0);timerEl.textContent=t;gridEl.classList.add('locked');startBtn.disabled=false;startBtn.textContent='Play again';
+  msg.className='win';msg.textContent='🏆 Quality Champion! '+(nameEl.value.trim()||'Player')+' found '+score+'/'+WORDS.length+' words in '+t+'. Please post a screenshot in the Teams chat!';}
+function rc(e){var t=e.target.closest?e.target.closest('.cell'):null;if(!t&&e.touches){var tt=e.touches[0];var el=document.elementFromPoint(tt.clientX,tt.clientY);t=el&&el.closest?el.closest('.cell'):null;}return t?{r:+t.dataset.r,c:+t.dataset.c}:null;}
+gridEl.addEventListener('pointerdown',function(e){if(!playing)return;var p=rc(e);if(!p)return;e.preventDefault();
+  if(anchor){var pa=line(anchor,p);anchor=null;check(pa);return;}
+  anchor=p;dragging=true;path=[p];showPath(path);});
+gridEl.addEventListener('pointermove',function(e){if(!playing||!dragging||!anchor)return;var el=document.elementFromPoint(e.clientX,e.clientY);if(!el||!el.classList.contains('cell'))return;var p={r:+el.dataset.r,c:+el.dataset.c};path=line(anchor,p);showPath(path);});
+document.addEventListener('pointerup',function(e){if(!dragging)return;dragging=false;if(path&&path.length>1){check(path);anchor=null;}path=[];});
+startBtn.addEventListener('click',function(){
+  if(!nameEl.value.trim()){msg.className='';msg.textContent='Please enter your name first.';nameEl.focus();return;}
+  found={};score=0;scoreEl.textContent=0;cells.forEach(function(x){x.classList.remove('found','sel');});renderWords();
+  playing=true;anchor=null;gridEl.classList.remove('locked');startBtn.disabled=true;t0=Date.now();clearInterval(tick);
+  tick=setInterval(function(){timerEl.textContent=fmt(Date.now()-t0);},250);msg.className='';msg.textContent='Go! Find all '+WORDS.length+' words.';});
+})();
+</script>
+</body>
+</html>
